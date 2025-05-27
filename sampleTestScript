@@ -1,0 +1,214 @@
+"""
+Sample usage and testing script to demonstrate telemetry features
+"""
+
+import asyncio
+import httpx
+import json
+import time
+from typing import Dict, Any
+
+class ChatbotAPITester:
+    """Test client for demonstrating telemetry features"""
+    
+    def __init__(self, base_url: str = "http://localhost:8000"):
+        self.base_url = base_url
+        self.client = httpx.AsyncClient()
+    
+    async def test_healthcheck(self, request_id: str = None) -> Dict[str, Any]:
+        """Test the healthcheck endpoint"""
+        headers = {}
+        if request_id:
+            headers["x-request-id"] = request_id
+        
+        print(f"🔍 Testing healthcheck endpoint...")
+        response = await self.client.get(f"{self.base_url}/healthcheck", headers=headers)
+        result = response.json()
+        
+        print(f"✅ Health check response: {json.dumps(result, indent=2)}")
+        print(f"📊 Request ID: {result.get('request_id')}")
+        return result
+    
+    async def test_chatbot_message(self, message: str, user_id: str = None, request_id: str = None) -> Dict[str, Any]:
+        """Test the chatbot message endpoint"""
+        headers = {"Content-Type": "application/json"}
+        if request_id:
+            headers["x-request-id"] = request_id
+        
+        payload = {
+            "message": message,
+            "user_id": user_id
+        }
+        
+        print(f"🤖 Testing chatbot with message: '{message}'")
+        print(f"👤 User ID: {user_id or 'anonymous'}")
+        
+        response = await self.client.post(
+            f"{self.base_url}/chatbot_message",
+            json=payload,
+            headers=headers
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            print(f"✅ Chatbot response: {json.dumps(result, indent=2)}")
+            print(f"🎯 Intent: {result.get('intent')} (confidence: {result.get('confidence')})")
+            print(f"📊 Request ID: {result.get('request_id')}")
+            return result
+        else:
+            print(f"❌ Error: {response.status_code} - {response.text}")
+            return {"error": response.text}
+    
+    async def test_error_scenario(self) -> Dict[str, Any]:
+        """Test error handling and exception telemetry"""
+        print(f"💥 Testing error scenario...")
+        
+        # Send an empty message to trigger validation error
+        try:
+            result = await self.test_chatbot_message("")
+            return result
+        except Exception as e:
+            print(f"❌ Expected error occurred: {e}")
+            return {"error": str(e)}
+    
+    async def run_comprehensive_test(self):
+        """Run a comprehensive test suite to demonstrate all telemetry features"""
+        print("🚀 Starting comprehensive telemetry test suite...\n")
+        
+        # Test 1: Health check
+        print("=" * 60)
+        print("TEST 1: Health Check with Dependency Monitoring")
+        print("=" * 60)
+        await self.test_healthcheck("health-check-001")
+        print()
+        
+        # Test 2: Various chatbot intents
+        test_messages = [
+            ("Hello there!", "greeting", "user-123"),
+            ("What's the weather like?", "weather", "user-123"),
+            ("Show me the latest news", "news", "user-456"),
+            ("What's the AAPL stock price?", "stock_price", "user-789"),
+            ("Can you help me with something?", "help", "user-123"),
+            ("Goodbye!", "goodbye", "user-123"),
+        ]
+        
+        for i, (message, expected_intent, user_id) in enumerate(test_messages, 1):
+            print("=" * 60)
+            print(f"TEST {i+1}: {expected_intent.upper()} Intent Recognition")
+            print("=" * 60)
+            await self.test_chatbot_message(message, user_id, f"test-{i+1:03d}")
+            print()
+            
+            # Add delay to see trace separation
+            await asyncio.sleep(1)
+        
+        # Test 3: Error handling
+        print("=" * 60)
+        print("TEST: Error Handling and Exception Telemetry")
+        print("=" * 60)
+        await self.test_error_scenario()
+        print()
+        
+        # Test 4: Concurrent requests to test correlation
+        print("=" * 60)
+        print("TEST: Concurrent Requests (Correlation Testing)")
+        print("=" * 60)
+        concurrent_tasks = [
+            self.test_chatbot_message("What's the weather?", f"user-{i}", f"concurrent-{i:03d}")
+            for i in range(5)
+        ]
+        
+        results = await asyncio.gather(*concurrent_tasks, return_exceptions=True)
+        
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                print(f"Task {i+1} failed: {result}")
+            else:
+                print(f"Task {i+1} completed: Request ID {result.get('request_id')}")
+        
+        print("\n🎉 Comprehensive test suite completed!")
+        print("\n📈 Check your Azure Application Insights dashboard to see:")
+        print("   • Request traces with correlation IDs")
+        print("   • Dependency calls to external APIs")
+        print("   • Custom metrics and counters")
+        print("   • Exception telemetry")
+        print("   • Performance metrics")
+    
+    async def cleanup(self):
+        """Clean up resources"""
+        await self.client.aclose()
+
+async def main():
+    """Main function to run the test suite"""
+    tester = ChatbotAPITester()
+    
+    try:
+        await tester.run_comprehensive_test()
+    finally:
+        await tester.cleanup()
+
+if __name__ == "__main__":
+    print("🔧 Chatbot API Telemetry Test Suite")
+    print("Make sure your FastAPI server is running on localhost:8000")
+    print("Press Ctrl+C to stop the tests\n")
+    
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n🛑 Tests interrupted by user")
+    except Exception as e:
+        print(f"\n❌ Test suite failed: {e}")
+
+# Example Azure Application Insights Queries
+SAMPLE_QUERIES = """
+-- Sample KQL queries for Azure Application Insights
+
+-- 1. View all requests with custom request_id
+requests
+| where timestamp > ago(1h)
+| extend request_id = tostring(customDimensions.request_id)
+| project timestamp, name, url, resultCode, duration, request_id
+| order by timestamp desc
+
+-- 2. Trace complete request flow
+union requests, dependencies, traces, exceptions
+| where timestamp > ago(1h)
+| extend request_id = coalesce(
+    tostring(customDimensions.request_id),
+    tostring(customDimensions["request_id"]),
+    ""
+)
+| where request_id != ""
+| project timestamp, itemType, name, message, request_id, operation_Id
+| order by request_id, timestamp
+
+-- 3. Monitor dependency performance
+dependencies
+| where timestamp > ago(1h)
+| summarize 
+    count(), 
+    avg(duration), 
+    percentile(duration, 95),
+    countif(success == false)
+by name
+| order by avg_duration desc
+
+-- 4. Intent recognition metrics
+customMetrics
+| where name == "chatbot_intents_recognized_total"
+| extend intent = tostring(customDimensions.intent)
+| summarize count() by intent
+| render piechart
+
+-- 5. Error correlation analysis
+exceptions
+| where timestamp > ago(1h)
+| extend request_id = tostring(customDimensions.request_id)
+| join kind=inner (
+    traces
+    | where timestamp > ago(1h)
+    | extend request_id = tostring(customDimensions.request_id)
+) on request_id
+| project timestamp, request_id, type, outerMessage, message
+| order by timestamp desc
+"""
