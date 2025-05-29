@@ -1,0 +1,403 @@
+{
+  "actionGroups": [
+    {
+      "name": "chatbot-critical-alerts",
+      "shortName": "cb-critical",
+      "description": "Critical alerts for chatbot application requiring immediate attention",
+      "receivers": {
+        "emailReceivers": [
+          {
+            "name": "on-call-engineer",
+            "emailAddress": "oncall-engineer@company.com"
+          },
+          {
+            "name": "tech-lead",
+            "emailAddress": "tech-lead@company.com"
+          }
+        ],
+        "smsReceivers": [
+          {
+            "name": "on-call-sms",
+            "countryCode": "1",
+            "phoneNumber": "+1234567890"
+          }
+        ],
+        "webhookReceivers": [
+          {
+            "name": "slack-critical",
+            "serviceUri": "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK",
+            "useCommonAlertSchema": true
+          },
+          {
+            "name": "pagerduty-integration",
+            "serviceUri": "https://events.pagerduty.com/integration/YOUR_INTEGRATION_KEY/enqueue",
+            "useCommonAlertSchema": true
+          }
+        ],
+        "armRoleReceivers": [
+          {
+            "name": "subscription-owners",
+            "roleId": "8e3af657-a8ff-443c-a75c-2fe8c4bcb635",
+            "useCommonAlertSchema": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "chatbot-performance-alerts",
+      "shortName": "cb-perf",
+      "description": "Performance-related alerts for chatbot application",
+      "receivers": {
+        "emailReceivers": [
+          {
+            "name": "performance-team",
+            "emailAddress": "performance-team@company.com"
+          },
+          {
+            "name": "platform-team",
+            "emailAddress": "platform-team@company.com"
+          }
+        ],
+        "webhookReceivers": [
+          {
+            "name": "slack-performance",
+            "serviceUri": "https://hooks.slack.com/services/YOUR/PERFORMANCE/WEBHOOK",
+            "useCommonAlertSchema": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "chatbot-dependency-alerts",
+      "shortName": "cb-deps",
+      "description": "External dependency-related alerts",
+      "receivers": {
+        "emailReceivers": [
+          {
+            "name": "platform-team",
+            "emailAddress": "platform-team@company.com"
+          },
+          {
+            "name": "integration-team",
+            "emailAddress": "integrations@company.com"
+          }
+        ],
+        "webhookReceivers": [
+          {
+            "name": "slack-dependencies",
+            "serviceUri": "https://hooks.slack.com/services/YOUR/DEPS/WEBHOOK",
+            "useCommonAlertSchema": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "chatbot-quality-alerts",
+      "shortName": "cb-quality",
+      "description": "Quality and ML model performance alerts",
+      "receivers": {
+        "emailReceivers": [
+          {
+            "name": "ml-team",
+            "emailAddress": "ml-team@company.com"
+          },
+          {
+            "name": "data-science-team",
+            "emailAddress": "data-science@company.com"
+          }
+        ],
+        "webhookReceivers": [
+          {
+            "name": "slack-ml-alerts",
+            "serviceUri": "https://hooks.slack.com/services/YOUR/ML/WEBHOOK",
+            "useCommonAlertSchema": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "chatbot-security-alerts",
+      "shortName": "cb-sec",
+      "description": "Security-related alerts",
+      "receivers": {
+        "emailReceivers": [
+          {
+            "name": "security-team",
+            "emailAddress": "security@company.com"
+          },
+          {
+            "name": "compliance-team",
+            "emailAddress": "compliance@company.com"
+          }
+        ],
+        "smsReceivers": [
+          {
+            "name": "security-sms",
+            "countryCode": "1",
+            "phoneNumber": "+1234567891"
+          }
+        ],
+        "webhookReceivers": [
+          {
+            "name": "security-incident-system",
+            "serviceUri": "https://your-security-system.com/webhook/alerts",
+            "useCommonAlertSchema": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "chatbot-business-alerts",
+      "shortName": "cb-biz",
+      "description": "Business metrics and KPI alerts",
+      "receivers": {
+        "emailReceivers": [
+          {
+            "name": "product-team",
+            "emailAddress": "product@company.com"
+          },
+          {
+            "name": "business-analysts",
+            "emailAddress": "analytics@company.com"
+          }
+        ],
+        "webhookReceivers": [
+          {
+            "name": "business-dashboard",
+            "serviceUri": "https://your-dashboard.com/webhook/business-alerts",
+            "useCommonAlertSchema": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "on-call-engineers",
+      "shortName": "oncall",
+      "description": "On-call engineers for immediate response",
+      "receivers": {
+        "emailReceivers": [
+          {
+            "name": "primary-oncall",
+            "emailAddress": "primary-oncall@company.com"
+          },
+          {
+            "name": "secondary-oncall",
+            "emailAddress": "secondary-oncall@company.com"
+          }
+        ],
+        "smsReceivers": [
+          {
+            "name": "primary-oncall-sms",
+            "countryCode": "1",
+            "phoneNumber": "+1234567892"
+          },
+          {
+            "name": "secondary-oncall-sms",
+            "countryCode": "1",
+            "phoneNumber": "+1234567893"
+          }
+        ],
+        "webhookReceivers": [
+          {
+            "name": "pagerduty-oncall",
+            "serviceUri": "https://events.pagerduty.com/integration/YOUR_ONCALL_KEY/enqueue",
+            "useCommonAlertSchema": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "engineering-leads",
+      "shortName": "eng-leads",
+      "description": "Engineering leadership team",
+      "receivers": {
+        "emailReceivers": [
+          {
+            "name": "engineering-manager",
+            "emailAddress": "eng-manager@company.com"
+          },
+          {
+            "name": "tech-director",
+            "emailAddress": "tech-director@company.com"
+          }
+        ]
+      }
+    },
+    {
+      "name": "platform-team",
+      "shortName": "platform",
+      "description": "Platform and infrastructure team",
+      "receivers": {
+        "emailReceivers": [
+          {
+            "name": "platform-lead",
+            "emailAddress": "platform-lead@company.com"
+          },
+          {
+            "name": "devops-team",
+            "emailAddress": "devops@company.com"
+          }
+        ],
+        "webhookReceivers": [
+          {
+            "name": "slack-platform",
+            "serviceUri": "https://hooks.slack.com/services/YOUR/PLATFORM/WEBHOOK",
+            "useCommonAlertSchema": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "infrastructure-team",
+      "shortName": "infra",
+      "description": "Infrastructure and operations team",
+      "receivers": {
+        "emailReceivers": [
+          {
+            "name": "infrastructure-lead",
+            "emailAddress": "infra-lead@company.com"
+          },
+          {
+            "name": "sre-team",
+            "emailAddress": "sre@company.com"
+          }
+        ],
+        "webhookReceivers": [
+          {
+            "name": "infrastructure-monitoring",
+            "serviceUri": "https://your-monitoring-system.com/webhook/infra",
+            "useCommonAlertSchema": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "database-team",
+      "shortName": "db-team",
+      "description": "Database administration team",
+      "receivers": {
+        "emailReceivers": [
+          {
+            "name": "dba-lead",
+            "emailAddress": "dba@company.com"
+          },
+          {
+            "name": "data-platform",
+            "emailAddress": "data-platform@company.com"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ml-team",
+      "shortName": "ml",
+      "description": "Machine Learning and AI team",
+      "receivers": {
+        "emailReceivers": [
+          {
+            "name": "ml-engineer",
+            "emailAddress": "ml-engineer@company.com"
+          },
+          {
+            "name": "ai-researcher",
+            "emailAddress": "ai-research@company.com"
+          }
+        ],
+        "webhookReceivers": [
+          {
+            "name": "ml-monitoring",
+            "serviceUri": "https://your-ml-platform.com/webhook/alerts",
+            "useCommonAlertSchema": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "product-team",
+      "shortName": "product",
+      "description": "Product management team",
+      "receivers": {
+        "emailReceivers": [
+          {
+            "name": "product-manager",
+            "emailAddress": "product-manager@company.com"
+          },
+          {
+            "name": "product-owner",
+            "emailAddress": "product-owner@company.com"
+          }
+        ]
+      }
+    },
+    {
+      "name": "chatbot-monitoring-alerts",
+      "shortName": "cb-monitor",
+      "description": "General monitoring alerts for chatbot",
+      "receivers": {
+        "emailReceivers": [
+          {
+            "name": "monitoring-team",
+            "emailAddress": "monitoring@company.com"
+          }
+        ],
+        "webhookReceivers": [
+          {
+            "name": "slack-monitoring",
+            "serviceUri": "https://hooks.slack.com/services/YOUR/MONITORING/WEBHOOK",
+            "useCommonAlertSchema": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "chatbot-scaling-alerts",
+      "shortName": "cb-scale",
+      "description": "Auto-scaling and capacity alerts",
+      "receivers": {
+        "emailReceivers": [
+          {
+            "name": "capacity-planning",
+            "emailAddress": "capacity@company.com"
+          }
+        ],
+        "webhookReceivers": [
+          {
+            "name": "auto-scaling-webhook",
+            "serviceUri": "https://your-scaling-system.com/webhook/scale-up",
+            "useCommonAlertSchema": true
+          }
+        ]
+      }
+    }
+  ],
+  "alertRuleConfiguration": {
+    "commonSettings": {
+      "enabled": true,
+      "autoMitigate": true,
+      "checkWorkspaceAlertsStorageConfigured": true,
+      "skipMetricValidation": false
+    },
+    "severityLevels": {
+      "0": "Critical - Service Down",
+      "1": "Error - Immediate Action Required", 
+      "2": "Warning - Action Required",
+      "3": "Informational - Monitoring",
+      "4": "Verbose - Debugging"
+    },
+    "evaluationFrequencyOptions": [
+      "PT1M",
+      "PT5M", 
+      "PT15M",
+      "PT30M",
+      "PT1H"
+    ],
+    "aggregationGranularityOptions": [
+      "PT1M",
+      "PT5M",
+      "PT15M", 
+      "PT30M",
+      "PT1H",
+      "P1D"
+    ]
+  }
+}

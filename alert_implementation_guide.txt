@@ -1,0 +1,181 @@
+# Azure Alert Rules Implementation Script
+# This PowerShell script creates the alert rules using Azure CLI
+
+# Prerequisites: 
+# - Azure CLI installed and authenticated
+# - Application Insights resource already created
+# - Resource Group exists
+
+# Variables - Update these with your actual values
+$RESOURCE_GROUP = "your-chatbot-rg"
+$APP_INSIGHTS_NAME = "your-chatbot-appinsights"
+$SUBSCRIPTION_ID = "your-subscription-id"
+$LOCATION = "East US"
+
+# Get Application Insights resource ID
+$APP_INSIGHTS_ID = az monitor app-insights component show --app $APP_INSIGHTS_NAME --resource-group $RESOURCE_GROUP --query "id" --output tsv
+
+Write-Host "Creating Action Groups..." -ForegroundColor Green
+
+# Create Critical Alerts Action Group
+az monitor action-group create `
+  --name "chatbot-critical-alerts" `
+  --short-name "cb-critical" `
+  --resource-group $RESOURCE_GROUP `
+  --email-receivers name="oncall-engineer" email="oncall-engineer@company.com" `
+  --email-receivers name="tech-lead" email="tech-lead@company.com" `
+  --sms-receivers name="oncall-sms" country-code="1" phone-number="1234567890" `
+  --webhook-receivers name="slack-critical" service-uri="https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK" use-common-alert-schema="true"
+
+# Create Performance Alerts Action Group  
+az monitor action-group create `
+  --name "chatbot-performance-alerts" `
+  --short-name "cb-perf" `
+  --resource-group $RESOURCE_GROUP `
+  --email-receivers name="performance-team" email="performance-team@company.com" `
+  --webhook-receivers name="slack-performance" service-uri="https://hooks.slack.com/services/YOUR/PERFORMANCE/WEBHOOK" use-common-alert-schema="true"
+
+# Create Dependency Alerts Action Group
+az monitor action-group create `
+  --name "chatbot-dependency-alerts" `
+  --short-name "cb-deps" `
+  --resource-group $RESOURCE_GROUP `
+  --email-receivers name="platform-team" email="platform-team@company.com"
+
+Write-Host "Creating Alert Rules..." -ForegroundColor Green
+
+# 1. High Request Latency Alert
+az monitor scheduled-query create `
+  --name "High Request Latency Alert" `
+  --resource-group $RESOURCE_GROUP `
+  --scopes $APP_INSIGHTS_ID `
+  --condition "avg(avg_duration) > 2000" `
+  --condition-query "requests | where timestamp > ago(5m) | where name contains 'chatbot_message' | summarize avg_duration = avg(duration) by bin(timestamp, 1m)" `
+  --description "Alert when average request latency exceeds 2 seconds" `
+  --evaluation-frequency "PT1M" `
+  --window-size "PT5M" `
+  --severity 2 `
+  --action-groups "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/microsoft.insights/actionGroups/chatbot-critical-alerts"
+
+# 2. High Error Rate Alert  
+az monitor scheduled-query create `
+  --name "High Error Rate Alert" `
+  --resource-group $RESOURCE_GROUP `
+  --scopes $APP_INSIGHTS_ID `
+  --condition "avg(error_rate) > 5.0" `
+  --condition-query "requests | where timestamp > ago(5m) | summarize error_rate = todouble(countif(resultCode >= 400)) / todouble(count()) * 100 by bin(timestamp, 1m)" `
+  --description "Alert when error rate exceeds 5%" `
+  --evaluation-frequency "PT1M" `
+  --window-size "PT5M" `
+  --severity 1 `
+  --action-groups "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/microsoft.insights/actionGroups/chatbot-critical-alerts"
+
+# 3. External Dependency Failure Alert
+az monitor scheduled-query create `
+  --name "External Dependency Failure Alert" `
+  --resource-group $RESOURCE_GROUP `
+  --scopes $APP_INSIGHTS_ID `
+  --condition "avg(failure_rate) > 20.0" `
+  --condition-query "dependencies | where timestamp > ago(5m) | where name in ('get_weather_data', 'get_news_data', 'get_stock_data') | summarize failure_rate = todouble(countif(success == false)) / todouble(count()) * 100 by bin(timestamp, 1m)" `
+  --description "Alert when dependency failure rate exceeds 20%" `
+  --evaluation-frequency "PT1M" `
+  --window-size "PT5M" `
+  --severity 2 `
+  --action-groups "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/microsoft.insights/actionGroups/chatbot-dependency-alerts"
+
+# 4. Exception Spike Alert
+az monitor scheduled-query create `
+  --name "Exception Spike Alert" `
+  --resource-group $RESOURCE_GROUP `
+  --scopes $APP_INSIGHTS_ID `
+  --condition "count() > 10" `
+  --condition-query "exceptions | where timestamp > ago(5m) | summarize exception_count = count() by bin(timestamp, 1m)" `
+  --description "Alert when exception count exceeds 10 per minute" `
+  --evaluation-frequency "PT1M" `
+  --window-size "PT5M" `
+  --severity 1 `
+  --action-groups "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/microsoft.insights/actionGroups/chatbot-critical-alerts"
+
+# 5. Health Check Failure Alert
+az monitor scheduled-query create `
+  --name "Health Check Failure Alert" `
+  --resource-group $RESOURCE_GROUP `
+  --scopes $APP_INSIGHTS_ID `
+  --condition "count() > 0" `
+  --condition-query "requests | where timestamp > ago(2m) | where name contains 'healthcheck' | where resultCode >= 400" `
+  --description "Alert when health check fails" `
+  --evaluation-frequency "PT1M" `
+  --window-size "PT2M" `
+  --severity 1 `
+  --action-groups "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP/providers/microsoft.insights/actionGroups/chatbot-critical-alerts"
+
+Write-Host "Alert rules created successfully!" -ForegroundColor Green
+
+# Verification commands
+Write-Host "Verifying created resources..." -ForegroundColor Yellow
+
+# List action groups
+Write-Host "Action Groups:" -ForegroundColor Cyan
+az monitor action-group list --resource-group $RESOURCE_GROUP --query "[].{Name:name, ShortName:groupShortName}" --output table
+
+# List alert rules  
+Write-Host "Alert Rules:" -ForegroundColor Cyan
+az monitor scheduled-query list --resource-group $RESOURCE_GROUP --query "[].{Name:name, Enabled:enabled, Severity:severity}" --output table
+
+Write-Host "Setup complete! Monitor your alerts in the Azure portal." -ForegroundColor Green
+
+# Optional: Create a dashboard to visualize the metrics
+Write-Host "Creating monitoring dashboard..." -ForegroundColor Yellow
+
+$DASHBOARD_JSON = @"
+{
+  "lenses": {
+    "0": {
+      "order": 0,
+      "parts": {
+        "0": {
+          "position": {"x": 0, "y": 0, "rowSpan": 4, "colSpan": 6},
+          "metadata": {
+            "inputs": [
+              {
+                "name": "ComponentId",
+                "value": {"SubscriptionId": "$SUBSCRIPTION_ID", "ResourceGroup": "$RESOURCE_GROUP", "Name": "$APP_INSIGHTS_NAME"}
+              }
+            ],
+            "type": "Extension/AppInsightsExtension/PartType/AppMapGalPt"
+          }
+        },
+        "1": {
+          "position": {"x": 6, "y": 0, "rowSpan": 4, "colSpan": 6},
+          "metadata": {
+            "inputs": [
+              {
+                "name": "ComponentId", 
+                "value": {"SubscriptionId": "$SUBSCRIPTION_ID", "ResourceGroup": "$RESOURCE_GROUP", "Name": "$APP_INSIGHTS_NAME"}
+              },
+              {
+                "name": "Query",
+                "value": "requests | where timestamp > ago(1h) | summarize count() by bin(timestamp, 5m) | render timechart"
+              }
+            ],
+            "type": "Extension/AppInsightsExtension/PartType/AnalyticsLineChartPart"
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "model": {
+      "timeRange": {"value": {"relative": {"duration": 24, "timeUnit": 1}}},
+      "filterLocale": {"value": "en-us"},
+      "filters": {"value": {"MsPortalFx_TimeRange": {"model": {"format": "utc", "granularity": "auto", "relative": "24h"}}}}
+    }
+  }
+}
+"@
+
+# Save dashboard JSON to file
+$DASHBOARD_JSON | Out-File -FilePath "chatbot-dashboard.json" -Encoding UTF8
+
+Write-Host "Dashboard configuration saved to chatbot-dashboard.json" -ForegroundColor Green
+Write-Host "Import this in Azure portal to create your monitoring dashboard." -ForegroundColor Yellow
